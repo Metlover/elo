@@ -30,6 +30,8 @@ accuracy(object, subset, ...)
 
 \item{subset}{(optional) A vector of indices on which to calculate accuracy.}
 
+\item{...}{Other arguments (not in use at this time).}
+
 \item{running}{logical, denoting whether to use the running predicted values.}
 }
 \description{
