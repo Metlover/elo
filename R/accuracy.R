@@ -21,7 +21,9 @@ accuracy <- function(object, subset, ...)
 #' @export
 accuracy.elo.run <- function(object, subset, ...)
 {
-  results <- score(object$elos[,3],0.5) & object$elos[,4]
+  results <- (object$elos[,3] >0.5 & object$elos[,4] == 1) |
+    (object$elos[,3] < 0.5 & object$elos[,4] == 0) |
+    (object$elos[,3] == 0.5 & object$elos[,4] == 0.5)
   if(!missing(subset)) results <- results[subset]
   sum(results) / length(results)
 }
@@ -30,7 +32,9 @@ accuracy.elo.run <- function(object, subset, ...)
 #' @export
 accuracy.elo.glm <- function(object, subset, ...)
 {
-  results <- score(object$fitted.values,0.5) & object$y
+  results <- (object$fitted.values >0.5 & object$y == 1) |
+    (object$fitted.values < 0.5 & object$y == 0) |
+    (object$fitted.values == 0.5 & object$y == 0.5)
   if(!missing(subset)) results <- results[subset]
   sum(results) / length(results)
 }
@@ -40,7 +44,9 @@ accuracy.elo.glm <- function(object, subset, ...)
 accuracy.elo.running <- function(object, subset, running = TRUE, ...)
 {
   if(!running) return(NextMethod())
-  results <- score(object$running.values,0.5) & object$y
+  results <- (object$running.values >0.5 & object$y == 1) |
+    (object$running.values < 0.5 & object$y == 0) |
+    (object$running.values == 0.5 & object$y == 0.5)
   if(!missing(subset)) results <- results[subset]
   sum(results) / length(results)
 }
