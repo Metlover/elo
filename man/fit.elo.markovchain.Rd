@@ -46,7 +46,7 @@ grid search.
 }
 \examples{
 data(tournament)
-params = expand.grid(k = seq(1,250,by=5),
+params = expand.grid(k = seq(0.05,1,by=0.05),
                      hfa = seq(0,100,by=5))
 fit.elo.markovchain(score(points.Home, points.Visitor) ~ adjust(team.Home, hfa) + team.Visitor,
             data = tournament,

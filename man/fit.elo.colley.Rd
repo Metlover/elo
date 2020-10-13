@@ -40,10 +40,14 @@ search through to optimize. The dataframe's column names correspond to the
 parameters to be optimized within the formula (i.e. if the term
 \code{adjust(team.home,hfa)} is included, to optimize hfa you will need a
 column named 'hfa' with plausible values in the grid search dataframe.
+A column named "k" must be included. If you wish to optimize other parameters
+while holding k constant, simply set k to the same value for all rows of the
+grid search.
 }
 \examples{
 data(tournament)
-params = list(hfa = seq(0,100,by=5))
+params = expand.grid(k = seq(1,250,by=5),
+                     hfa = seq(0,100,by=5))
 fit.elo.colley(score(points.Home, points.Visitor) ~ adjust(team.Home, hfa) + team.Visitor,
             data = tournament,
             optimfun = 'mse',
