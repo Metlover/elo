@@ -22,10 +22,14 @@
 #' parameters to be optimized within the formula (i.e. if the term
 #' \code{adjust(team.home,hfa)} is included, to optimize hfa you will need a
 #' column named 'hfa' with plausible values in the grid search dataframe.
+#' A column named "k" must be included. If you wish to optimize other parameters
+#' while holding k constant, simply set k to the same value for all rows of the
+#' grid search.
 #'
 #' @examples
 #' data(tournament)
-#' params = list(hfa = seq(0,100,by=5))
+#' params = expand.grid(k = seq(1,250,by=5),
+#'                      hfa = seq(0,100,by=5))
 #' fit.elo.colley(score(points.Home, points.Visitor) ~ adjust(team.Home, hfa) + team.Visitor,
 #'             data = tournament,
 #'             optimfun = 'mse',
@@ -36,7 +40,13 @@ NULL
 
 #' @rdname fit.elo.colley
 #' @export
-fit.elo.colley <- function(formula, data,  optimfun = 'mse', gridsearch, ...){
+
+fit.elo.colley <- function(formula, data, optimfun = 'mse', gridsearch, ...){
+
+  if(!('k' %in% colnames(gridsearch))){
+    stop("There is no column for k-values within the grid search dataframe.
+          Please insert a column named \"k\" with values of k to iterate over and try again.")
+  }
 
   gridsearch$mse = NA_real_
   gridsearch$accuracy = NA_real_
@@ -46,20 +56,22 @@ fit.elo.colley <- function(formula, data,  optimfun = 'mse', gridsearch, ...){
   for(n in seq(nrow(gridsearch))){
     parameters = list()
     for(col in seq(ncol(gridsearch))){
-      if(!(colnames(gridsearch)[col] %in%
-           c('mse','accuracy','calibration','auc'))) {
+      if(colnames(gridsearch)[col] == 'k'){
+        k = gridsearch[n,col]
+      } else if(!(colnames(gridsearch)[col] %in%
+                  c('mse','accuracy','calibration','auc'))) {
         parameters[colnames(gridsearch)[col]] = as.numeric(gridsearch[n,col])
       }
     }
 
     adj_formula = formula(do.call("substitute",list(formula, parameters)))
 
-    col = suppressWarnings(elo.colley(formula = adj_formula, data = data, ...))
+    colley = suppressWarnings(elo.colley(formula = adj_formula, data = data, k = k, ...))
 
-    gridsearch$mse[n] = mse(col)
-    gridsearch$accuracy[n] = accuracy(col)
-    gridsearch$calibration[n] = calibration(col)
-    gridsearch$auc[n] = calibration(col)
+    gridsearch$mse[n] = mse(colley)
+    gridsearch$accuracy[n] = accuracy(colley)
+    gridsearch$calibration[n] = calibration(colley)
+    gridsearch$auc[n] = calibration(colley)
   }
 
   if(!(tolower(optimfun) %in% c('mse','brier','accuracy',
@@ -88,15 +100,19 @@ fit.elo.colley <- function(formula, data,  optimfun = 'mse', gridsearch, ...){
 
   final_parameters = list()
   for(col in seq(ncol(gridsearch))){
-    if(!(colnames(gridsearch)[col] %in%
-         c('mse','accuracy','calibration','auc'))){
+    if(colnames(gridsearch)[col] == 'k'){
+      k = optimized$k[1]
+    } else if(!(colnames(gridsearch)[col] %in%
+                c('mse','accuracy','calibration','auc'))){
       final_parameters[colnames(gridsearch)[col]] = as.numeric(optimized[1,col])
     }
   }
 
   final_formula = formula(do.call("substitute",list(formula, final_parameters)))
 
-  col = elo.colley(formula = final_formula, data = data)
+  cat("Optimized K value: ", k,'\n')
 
-  return(col)
+  colley = elo.colley(formula = final_formula, data = data, k = k, ...)
+
+  return(colley)
 }
