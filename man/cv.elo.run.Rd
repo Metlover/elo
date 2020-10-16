@@ -106,9 +106,9 @@ inaugural teams initially, and hence, a \code{new.team.elo} value lower than
 }
 \examples{
 data(tournament)
-params = expand.grid(k = seq(1,250,by=5),
+params = expand.grid(kval = seq(1,250,by=5),
                      hfa = seq(0,100,by=5))
-cv.elo.run(score(points.Home, points.Visitor) ~ adjust(team.Home, hfa) + team.Visitor,
+cv.elo.run(score(points.Home, points.Visitor) ~ adjust(team.Home, hfa) + team.Visitor + k(kval),
 data = tournament,
 optimfun = 'mse',
 gridsearch = params,
