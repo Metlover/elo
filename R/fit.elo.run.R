@@ -199,8 +199,6 @@ NULL
 
 cv.elo.run <- function(formula, data, optimfun = 'mse', gridsearch, nfolds = NULL,
                        groups = NULL, new.team.elo = 1500, ...){
-
-
   gridsearch$mse = 0
   gridsearch$accuracy = 0
   gridsearch$calibration = 0
@@ -223,6 +221,7 @@ cv.elo.run <- function(formula, data, optimfun = 'mse', gridsearch, nfolds = NUL
       temp = split(data, rep(1:ceiling(rows/fold_size), each=fold_size, length.out=rows))
       nfolds.temp = nfolds
     } else if(!is.null(groups)){
+      data = as.data.frame(data)
       factors = factor(data[,groups], levels = unique(data[,groups]))
       temp = split(data, factors)
       nfolds.temp = length(unique(data[,groups]))
@@ -236,8 +235,6 @@ cv.elo.run <- function(formula, data, optimfun = 'mse', gridsearch, nfolds = NUL
 
       train.run = suppressWarnings(elo.run(formula = adj_formula, data = train, ...))
       test.run = suppressWarnings(elo.run(formula = adj_formula, data = test, ...))
-
-      browser()
 
       elos = final.elos(train.run)
       for(team in test.run$teams){
@@ -304,6 +301,8 @@ cv.elo.run <- function(formula, data, optimfun = 'mse', gridsearch, nfolds = NUL
       final_parameters[colnames(gridsearch)[col]] = as.numeric(optimized[1,col])
     }
   }
+
+  print(final_parameters)
 
   final_formula = formula(do.call("substitute",list(formula, final_parameters)))
 
