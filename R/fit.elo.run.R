@@ -22,15 +22,12 @@
 #' parameters to be optimized within the formula (i.e. if the term
 #' \code{adjust(team.home,hfa)} is included, to optimize hfa you will need a
 #' column named 'hfa' with plausible values in the grid search dataframe.
-#' A column named "k" must be included. If you wish to optimize other parameters
-#' while holding k constant, simply set k to the same value for all rows of the
-#' grid search.
 #'
 #' @examples
 #' data(tournament)
-#' params = expand.grid(k = seq(1,250,by=5),
+#' params = expand.grid(kval = seq(1,250,by=5),
 #'                      hfa = seq(0,100,by=5))
-#' fit.elo.run(score(points.Home, points.Visitor) ~ adjust(team.Home, hfa) + team.Visitor,
+#' fit.elo.run(score(points.Home, points.Visitor) ~ adjust(team.Home, hfa) + team.Visitor + k(kval),
 #'             data = tournament,
 #'             optimfun = 'mse',
 #'             gridsearch = params)
@@ -43,9 +40,8 @@ NULL
 
 fit.elo.run <- function(formula, data, optimfun = 'mse', gridsearch, ...){
 
-  if(!('k' %in% colnames(gridsearch))){
-    stop("There is no column for k-values within the grid search dataframe.
-          Please insert a column named \"k\" with values of k to iterate over and try again.")
+  if(!any(grepl("k\\((.*)\\)", as.character(formula)))){
+    warning("k not passed in as a formula term, using constant K instead...")
   }
 
   gridsearch$mse = NA_real_
@@ -56,9 +52,7 @@ fit.elo.run <- function(formula, data, optimfun = 'mse', gridsearch, ...){
   for(n in seq(nrow(gridsearch))){
     parameters = list()
     for(col in seq(ncol(gridsearch))){
-      if(colnames(gridsearch)[col] == 'k'){
-        k = gridsearch[n,col]
-      } else if(!(colnames(gridsearch)[col] %in%
+      if(!(colnames(gridsearch)[col] %in%
                   c('mse','accuracy','calibration','auc'))) {
         parameters[colnames(gridsearch)[col]] = as.numeric(gridsearch[n,col])
       }
@@ -66,7 +60,7 @@ fit.elo.run <- function(formula, data, optimfun = 'mse', gridsearch, ...){
 
     adj_formula = formula(do.call("substitute",list(formula, parameters)))
 
-    run = suppressWarnings(elo.run(formula = adj_formula, data = data, k = k, ...))
+    run = suppressWarnings(elo.run(formula = adj_formula, data = data, ...))
 
     gridsearch$mse[n] = mse(run)
     gridsearch$accuracy[n] = accuracy(run)
@@ -100,9 +94,7 @@ fit.elo.run <- function(formula, data, optimfun = 'mse', gridsearch, ...){
 
   final_parameters = list()
   for(col in seq(ncol(gridsearch))){
-    if(colnames(gridsearch)[col] == 'k'){
-      k = optimized$k[1]
-    } else if(!(colnames(gridsearch)[col] %in%
+    if(!(colnames(gridsearch)[col] %in%
                 c('mse','accuracy','calibration','auc'))){
       final_parameters[colnames(gridsearch)[col]] = as.numeric(optimized[1,col])
     }
@@ -110,9 +102,7 @@ fit.elo.run <- function(formula, data, optimfun = 'mse', gridsearch, ...){
 
   final_formula = formula(do.call("substitute",list(formula, final_parameters)))
 
-  cat("Optimized K value: ", k,'\n')
-
-  run = elo.run(formula = final_formula, data = data, k = k, ...)
+  run = elo.run(formula = final_formula, data = data, ...)
 
   return(run)
 }
@@ -192,9 +182,9 @@ fit.elo.run <- function(formula, data, optimfun = 'mse', gridsearch, ...){
 #'
 #' @examples
 #' data(tournament)
-#' params = expand.grid(k = seq(1,250,by=5),
+#' params = expand.grid(kval = seq(1,250,by=5),
 #'                      hfa = seq(0,100,by=5))
-#' cv.elo.run(score(points.Home, points.Visitor) ~ adjust(team.Home, hfa) + team.Visitor,
+#' cv.elo.run(score(points.Home, points.Visitor) ~ adjust(team.Home, hfa) + team.Visitor + k(kval),
 #' data = tournament,
 #' optimfun = 'mse',
 #' gridsearch = params,
@@ -210,10 +200,6 @@ NULL
 cv.elo.run <- function(formula, data, optimfun = 'mse', gridsearch, nfolds = NULL,
                        groups = NULL, new.team.elo = 1500, ...){
 
-  if(!('k' %in% colnames(gridsearch))){
-    stop("There is no column for k-values within the grid search dataframe.
-          Please insert a column named \"k\" with values of k to iterate over and try again.")
-  }
 
   gridsearch$mse = 0
   gridsearch$accuracy = 0
@@ -223,9 +209,7 @@ cv.elo.run <- function(formula, data, optimfun = 'mse', gridsearch, nfolds = NUL
   for(n in seq(nrow(gridsearch))){
     parameters = list()
     for(col in seq(ncol(gridsearch))){
-      if(colnames(gridsearch)[col] == 'k'){
-        k = gridsearch[n,col]
-      } else if(!(colnames(gridsearch)[col] %in%
+      if(!(colnames(gridsearch)[col] %in%
                   c('mse','accuracy','calibration','auc'))) {
         parameters[colnames(gridsearch)[col]] = as.numeric(gridsearch[n,col])
       }
@@ -250,8 +234,8 @@ cv.elo.run <- function(formula, data, optimfun = 'mse', gridsearch, nfolds = NUL
       train = do.call("rbind", temp[c(1:m-1)])
       test = temp[m][[1]]
 
-      train.run = suppressWarnings(elo.run(formula = adj_formula, data = train, k = k, ...))
-      test.run = suppressWarnings(elo.run(formula = adj_formula, data = test, k = k, ...))
+      train.run = suppressWarnings(elo.run(formula = adj_formula, data = train, ...))
+      test.run = suppressWarnings(elo.run(formula = adj_formula, data = test, ...))
 
       browser()
 
@@ -315,9 +299,7 @@ cv.elo.run <- function(formula, data, optimfun = 'mse', gridsearch, nfolds = NUL
 
   final_parameters = list()
   for(col in seq(ncol(gridsearch))){
-    if(colnames(gridsearch)[col] == 'k'){
-      k = optimized$k[1]
-    } else if(!(colnames(gridsearch)[col] %in%
+    if(!(colnames(gridsearch)[col] %in%
                 c('mse','accuracy','calibration','auc'))){
       final_parameters[colnames(gridsearch)[col]] = as.numeric(optimized[1,col])
     }
@@ -325,9 +307,7 @@ cv.elo.run <- function(formula, data, optimfun = 'mse', gridsearch, nfolds = NUL
 
   final_formula = formula(do.call("substitute",list(formula, final_parameters)))
 
-  cat("Optimized K value: ", k,'\n')
-
-  run = elo.run(formula = final_formula, data = data, k = k, ...)
+  run = elo.run(formula = final_formula, data = data, ...)
 
   return(run)
 }
