@@ -49,7 +49,6 @@ elo.markovchain <- function(formula, data, family = "binomial", weights, na.acti
 
   # we use the convention Ax = x
   out <- do.call(eloMarkovChain, dat)
-  browser()
   if(any(abs(colSums(out[[1]]) - 1) > sqrt(.Machine$double.eps))) warning("colSums(transition matrix) may not be 1")
 
   eig <- eigen(out[[1]])
